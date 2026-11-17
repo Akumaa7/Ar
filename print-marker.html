@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marcador HIRO · Menu AR</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:24px;background:#f3f3ef;color:#18211d;font-family:Arial,sans-serif;text-align:center}.card{max-width:620px;margin:0 auto;background:white;border-radius:20px;padding:25px;box-shadow:0 8px 30px #0000000d}h1{font-size:24px;margin:0 0 8px}p{font-size:14px;line-height:1.5;color:#586258}.marker{display:block;width:10cm;height:10cm;max-width:85vw;max-height:85vw;object-fit:contain;margin:22px auto;background:white}.btn{border:0;background:#18211d;color:white;padding:12px 18px;border-radius:99px;font-weight:700;cursor:pointer}.note{font-size:12px;color:#737d72}.back{display:inline-block;margin-top:16px;color:#3c6030;text-decoration:none;font-size:13px}@media print{body{background:white;padding:0}.card{box-shadow:none;border-radius:0;padding:0}.instructions,.btn,.back{display:none!important}.marker{width:10cm;height:10cm;max-width:none;max-height:none;margin:0 auto}.print-title{display:none}}
+</style>
+</head>
+<body>
+<section class="card">
+  <div class="instructions">
+    <h1>Marcador de realidade aumentada</h1>
+    <p>Imprima esta imagem em tamanho real, sem cortar nem esticar. O quadrado preto externo precisa ficar inteiro e plano.</p>
+    <button class="btn" onclick="window.print()">Imprimir marcador</button>
+  </div>
+  <img class="marker" src="https://raw.githubusercontent.com/AR-js-org/AR.js/master/data/images/hiro.png" alt="Marcador HIRO para realidade aumentada" onerror="document.getElementById('imgErr').style.display='block'">
+  <p id="imgErr" class="note" style="display:none;color:#b3261e">Não consegui carregar a imagem do marcador (sem internet?). Conecte-se e recarregue esta página.</p>
+  <p class="note">Imprima a imagem inteira com 10 × 10 cm. Não recorte as margens brancas.</p>
+  <div class="instructions"><a class="back" href="index.html">← Voltar ao cardápio</a></div>
+</section>
+</body>
+</html>

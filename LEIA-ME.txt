@@ -1,0 +1,50 @@
+PROTOTIPO MENU AR — VERSAO COM AR POR MARCADOR
+
+Arquivos:
+- index.html: cardapio demonstrativo e visualizador 3D.
+- ar-marker.html: experiencia de camera/AR.js por marcador HIRO.
+- print-marker.html: pagina para abrir e imprimir o marcador oficial HIRO.
+- assets/house-burger.glb: modelo 3D ilustrativo de hamburguer.
+
+O QUE MUDOU (v4)
+- AR nativo (ARCore/Quick Look) pelo model-viewer, com AR.js como plano B. Nova pagina ar-test.html para testar se o aparelho suporta ARCore.
+
+O QUE MUDOU (v3 - correcoes)
+- ar-marker.html reescrito: agora tem botao "Ligar camera" (necessario no iPhone), checagem de HTTPS/permissao com mensagens claras, A-Frame 1.3.0 + AR.js 3.4.5 (combinacao estavel; a anterior 1.6.0 + 3.4.7 era incompativel), CDN com fallback, escala corrigida (modelo aparecia minusculo), botoes + e - para ajustar tamanho, guia pontilhado na tela e log de diagnostico (abra ar-marker.html?debug).
+
+O QUE MUDOU (v2)
+O botao de AR abre diretamente a experiencia AR.js por marcador visual. Esta rota nao usa WebXR nem depende do ARCore; ela utiliza camera + rastreamento visual. E uma primeira estrategia para ampliar a compatibilidade entre Android e iPhone.
+
+IMPORTANTE SOBRE A LIMITACAO
+A AR.js NAO coloca o produto livremente em qualquer mesa. Ela reconhece um marcador visual HIRO. Para ver o hamburguer sobre a mesa, coloque o marcador impresso sobre a mesa e aponte a camera para ele. O modelo fica ancorado nesse papel/cartao. E uma experiencia AR real baseada em rastreamento visual, mas nao tem deteccao livre de superficies.
+
+COMO TESTAR O CARDAPIO E O 3D NO PC
+1) Extraia a pasta menu_ar_demo.
+2) Abra PowerShell dentro dela.
+3) Execute: py -m http.server 8000
+4) Acesse: http://localhost:8000
+5) Abra um produto e arraste o modelo 3D.
+
+COMO TESTAR A AR NO POCO F6 / OUTRO CELULAR
+A camera do navegador exige HTTPS (ou localhost no proprio dispositivo). O endereco http://192.168.x.x:8000 acessado pela rede local normalmente nao e considerado contexto seguro.
+1) Publique a pasta inteira em um host HTTPS, por exemplo Netlify Drop ou GitHub Pages.
+2) Abra o endereco HTTPS no Chrome do celular.
+3) Abra o produto em destaque e toque em "Ver na minha mesa". A pagina ar-marker.html sera aberta diretamente; esta versao usa marcador visual para nao depender do ARCore.
+4) Em outro aparelho ou no computador, abra print-marker.html e imprima o marcador HIRO em 10 x 10 cm. Nao corte nem estique a imagem.
+5) Coloque o marcador impresso na mesa, permita o uso da camera e aponte o celular para ele.
+
+DICAS DE TESTE
+- Boa iluminacao ajuda o rastreamento.
+- Mantenha o quadrado HIRO inteiro visivel.
+- Evite reflexos no papel e superficies muito brilhantes.
+- Para testar sem impressora, abra print-marker.html em uma segunda tela (computador) e aponte o celular para ela.
+- Se a tela ficar pedindo camera, confira as permissoes do site no navegador.
+
+ESCALA
+O arquivo GLB foi inspecionado: aproximadamente 12 cm de largura e 10,2 cm de altura. O marcador HIRO impresso com 10 cm de largura total tem um contorno preto de cerca de 9,2 cm; a pagina AR usa esse tamanho para aproximar a escala. A escala no mundo real depende de imprimir no tamanho indicado.
+
+OBSERVACOES
+- O prototipo nao e oficial do IceBode. Os produtos, precos, textos e imagens sao de demonstracao/referencia e devem ser confirmados antes de qualquer uso comercial.
+- AR.js usa bibliotecas carregadas por CDN; e necessaria internet na primeira abertura.
+- O modelo 3D e ilustrativo, nao uma digitalizacao fiel de um prato real.
+- A experiencia pode variar com navegador, camera, permissao e desempenho do aparelho.

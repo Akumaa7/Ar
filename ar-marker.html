@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#18211d">
+  <title>Menu AR · Experiência com marcador</title>
+  <style>
+    *{box-sizing:border-box}
+    html,body{margin:0;width:100%;height:100%;overflow:hidden;background:transparent;color:#fff;font-family:Arial,sans-serif}
+    body{background:#101712}
+    body.live{background:transparent}
+    .hud{position:fixed;z-index:20;left:0;right:0;top:0;padding:calc(14px + env(safe-area-inset-top)) 15px 14px;background:linear-gradient(180deg,rgba(10,17,13,.88),rgba(10,17,13,.36),transparent);pointer-events:none}
+    .topline{display:flex;align-items:center;justify-content:space-between;gap:10px}
+    .brand{font-weight:800;letter-spacing:.12em;font-size:12px}
+    .pill{border:1px solid rgba(255,255,255,.24);border-radius:99px;padding:7px 10px;font-size:10px;color:#d9e3d8;background:rgba(12,20,14,.42)}
+    h1{font-size:21px;line-height:1.12;margin:17px 0 6px;letter-spacing:-.04em}
+    .sub{font-size:12px;line-height:1.45;color:#e0e7de;max-width:360px;margin:0}
+    .status{position:fixed;z-index:30;left:50%;bottom:calc(20px + env(safe-area-inset-bottom));transform:translateX(-50%);width:min(92%,420px);padding:13px 15px;border:1px solid rgba(255,255,255,.16);border-radius:16px;background:rgba(13,21,16,.88);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);text-align:center;font-size:12px;line-height:1.45;box-shadow:0 10px 35px #0005}
+    .status strong{display:block;color:#c9f36b;font-size:13px;margin-bottom:3px}
+    .status.err strong{color:#ff9d8a}
+    .actions{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}
+    a.btn,button.btn{appearance:none;-webkit-appearance:none;text-decoration:none;border:0;border-radius:99px;padding:11px 15px;font-weight:700;font-size:12px;cursor:pointer;background:#c9f36b;color:#18211d;font-family:inherit}
+    a.btn.secondary,button.btn.secondary{background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:#fff}
+    .hint{font-size:10px;color:#bec9be;margin-top:8px}
+    .size-ctl{display:none;position:fixed;z-index:25;right:12px;top:50%;transform:translateY(-50%);flex-direction:column;gap:8px}
+    .size-ctl.on{display:flex}
+    .size-ctl button{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.3);background:rgba(13,21,16,.7);color:#fff;font-size:20px;font-weight:700}
+    .size-ctl span{font-size:10px;text-align:center;color:#d9e3d8;text-shadow:0 1px 3px #000}
+    .tracker{position:fixed;z-index:24;left:50%;top:50%;width:min(60vw,260px);aspect-ratio:1;transform:translate(-50%,-50%);border:2px dashed rgba(201,243,107,.7);border-radius:18px;pointer-events:none;display:none}
+    .tracker.on{display:block}
+    /* vídeo da câmera do AR.js sempre atrás da cena */
+    video{position:fixed!important;top:0;left:0;z-index:-2}
+    #stage{position:fixed;left:0;top:0;width:100%;height:100%;z-index:1;pointer-events:none}
+    a-scene{position:fixed!important;left:0;top:0;width:100%!important;height:100%!important;background:transparent!important}
+    .a-canvas{position:absolute!important;left:0;top:0;width:100%!important;height:100%!important;z-index:1!important;background:transparent!important}
+    #log{display:none;position:fixed;z-index:40;left:8px;right:8px;top:8px;max-height:40vh;overflow:auto;background:rgba(0,0,0,.85);color:#9f9;font:10px/1.4 monospace;padding:8px;border-radius:8px;white-space:pre-wrap}
+    #log.on{display:block}
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div class="topline"><div class="brand">ICEBODE · MENU AR</div><div class="pill">AR POR MARCADOR</div></div>
+    <h1>Coloque o marcador na mesa</h1>
+    <p class="sub">Aponte a câmera para o quadrado HIRO. O hambúrguer 3D aparecerá preso ao marcador.</p>
+  </div>
+
+  <div class="tracker" id="tracker"></div>
+
+  <div class="size-ctl" id="sizeCtl">
+    <button id="bigger" aria-label="Aumentar">+</button>
+    <span id="sizeLabel">100%</span>
+    <button id="smaller" aria-label="Diminuir">−</button>
+  </div>
+
+  <div id="stage"></div>
+  <pre id="log"></pre>
+
+  <div class="status" id="status">
+    <strong id="statusTitle">Pronto para começar</strong>
+    <span id="statusText">Toque em “Ligar câmera”, permita o acesso e mire no marcador HIRO.</span>
+    <div class="actions">
+      <button class="btn" id="startBtn">Ligar câmera</button>
+      <a class="btn secondary" href="print-marker.html" target="_blank" rel="noopener">Abrir marcador</a>
+      <a class="btn secondary" href="index.html">Voltar</a>
+    </div>
+    <div class="hint" id="hint">Dica: boa iluminação, marcador inteiro visível e sem reflexo.</div>
+  </div>
+
+  <script>
+  (function(){
+    'use strict';
+    const $ = id => document.getElementById(id);
+    const title = $('statusTitle'), text = $('statusText'), box = $('status'), hint = $('hint');
+    const logEl = $('log');
+    const DEBUG = new URLSearchParams(location.search).has('debug');
+    const qs = new URLSearchParams(location.search);
+    if (qs.has('debug')) logEl.classList.add('on');
+    function log(m){ try{ console.log('[AR]', m); logEl.textContent += m + '\n'; logEl.scrollTop = logEl.scrollHeight; }catch(e){} }
+    function say(t, s, isErr){ title.textContent = t; text.textContent = s; box.classList.toggle('err', !!isErr); }
+    window.addEventListener('error', e => { log('ERRO: ' + (e.message || e)); });
+    window.addEventListener('unhandledrejection', e => { log('PROMISE: ' + (e.reason && e.reason.message || e.reason)); });
+
+    // ------- Escala -------
+    // No AR.js (size padrão = 1), 1 unidade dentro do <a-marker> = largura do marcador (quadrado preto ~9,2 cm).
+    // O hambúrguer real tem ~12 cm => 12/9,2 = ~1,3 unidades de largura. Medimos o modelo (bounding box)
+    // e normalizamos para essa largura, assim não dependemos da unidade do arquivo GLB.
+    const TARGET_WIDTH = 1.3 * (parseFloat(qs.get('w')) || 1);
+    let userScale = parseFloat(qs.get('s')) || 1;
+    let fitScale = 1;
+    function applyScale(){
+      const m = document.getElementById('burger');
+      if (m){ const s = fitScale * userScale; m.object3D.scale.set(s, s, s); }
+      $('sizeLabel').textContent = Math.round(userScale * 100) + '%';
+    }
+    function fitModel(){
+      const el = document.getElementById('burger');
+      const THREE = AFRAME.THREE;
+      el.object3D.scale.set(1,1,1);
+      el.object3D.position.set(0,0,0);
+      const box = new THREE.Box3().setFromObject(el.object3D);
+      const size = new THREE.Vector3(); box.getSize(size);
+      const center = new THREE.Vector3(); box.getCenter(center);
+      log('bbox ' + size.x.toFixed(4) + ' x ' + size.y.toFixed(4) + ' x ' + size.z.toFixed(4));
+      const w = Math.max(size.x, size.z);
+      if (!isFinite(w) || w <= 0){ log('bbox vazio - modelo sem geometria visível'); return; }
+      fitScale = TARGET_WIDTH / w;
+      // centraliza em X/Z e apoia a base em y=0
+      el.object3D.position.set(-center.x * fitScale, -box.min.y * fitScale, -center.z * fitScale);
+      el.setAttribute('visible', 'true');
+      log('fitScale ' + fitScale.toFixed(3) + ' (largura alvo ' + TARGET_WIDTH.toFixed(2) + ' un.)');
+      applyScale();
+    }
+    $('bigger').onclick  = () => { userScale = Math.min(userScale * 1.3, 30); applyScale(); };
+    $('smaller').onclick = () => { userScale = Math.max(userScale / 1.3, 0.03); applyScale(); };
+
+    // ------- Carregamento de scripts com fallback de CDN -------
+    function loadScript(urls){
+      return new Promise((resolve, reject) => {
+        let i = 0;
+        (function next(){
+          if (i >= urls.length) return reject(new Error('Falha ao carregar: ' + urls[0]));
+          const u = urls[i++];
+          const s = document.createElement('script');
+          s.src = u; s.async = false;
+          s.onload = () => { log('ok ' + u); resolve(); };
+          s.onerror = () => { log('falhou ' + u); s.remove(); next(); };
+          document.head.appendChild(s);
+        })();
+      });
+    }
+
+    // ------- Cena -------
+    function buildScene(){
+      const stage = $('stage');
+      stage.innerHTML = `
+        <a-scene vr-mode-ui="enabled: false" loading-screen="enabled: false"
+          renderer="antialias: true; alpha: true; precision: medium"
+          arjs="sourceType: webcam; facingMode: environment; debugUIEnabled: false; detectionMode: mono; maxDetectionRate: 30; canvasWidth: 640; canvasHeight: 480;">
+          <a-assets timeout="30000">
+            <a-asset-item id="burgerModel" src="assets/house-burger.glb"></a-asset-item>
+          </a-assets>
+          <a-marker id="hiroMarker" preset="hiro" emitevents="true" smooth="true" smooth-count="6" smooth-tolerance="0.01" smooth-threshold="4">
+            <a-entity id="holder" position="0 0 0">
+              <a-entity id="burger" gltf-model="#burgerModel" visible="false"></a-entity>
+            </a-entity>
+            ${DEBUG ? `<a-box id="testBox" position="0 0.15 0" width="0.3" height="0.3" depth="0.3" color="#ff2bd6"></a-box>
+            <a-plane rotation="-90 0 0" width="1" height="1" position="0 0.001 0" color="#c9f36b" opacity="0.35"></a-plane>` : ''}
+            <a-entity light="type: ambient; intensity: 1.2"></a-entity>
+            <a-entity light="type: directional; intensity: 0.9" position="-1 2 1"></a-entity>
+          </a-marker>
+          <a-entity camera></a-entity>
+        </a-scene>`;
+      const marker = $('hiroMarker');
+      const burger = $('burger');
+      const tracker = $('tracker');
+      marker.addEventListener('markerFound', () => {
+        try{ const p = marker.object3D.position; const c=document.querySelector('canvas.a-canvas'); log('markerFound dist=' + p.length().toFixed(3) + ' un.  visible=' + marker.object3D.visible + '  canvas=' + (c? c.clientWidth+'x'+c.clientHeight : 'NAO EXISTE')); }catch(e){}
+        tracker.classList.remove('on');
+        $('sizeCtl').classList.add('on');
+        say('Marcador encontrado!', 'O hambúrguer está ancorado ao marcador. Use + e − para ajustar o tamanho.');
+        box.style.opacity = '.0'; setTimeout(()=>{ if (box.style.opacity==='0') box.style.display='none'; }, 2500);
+      });
+      marker.addEventListener('markerLost', () => {
+        tracker.classList.add('on');
+        box.style.display = ''; box.style.opacity = '1';
+        say('Procure o marcador', 'Aponte novamente para o quadrado HIRO e mantenha-o inteiro na tela.');
+      });
+      burger.addEventListener('model-loaded', () => { log('modelo 3D carregado'); try{ fitModel(); }catch(e){ log('fitModel: ' + e.message); el_show(); } });
+      function el_show(){ burger.setAttribute('visible','true'); burger.object3D.scale.set(10,10,10); }
+      burger.addEventListener('model-error', e => { log('ERRO modelo: ' + (e.detail && e.detail.src)); say('Erro no modelo 3D', 'Não consegui carregar assets/house-burger.glb. Confirme que a pasta assets foi publicada junto.', true); });
+
+      // Eventos do AR.js disparam em window
+      window.addEventListener('camera-init', () => {
+        log('camera-init');
+        document.body.classList.add('live');
+        $('tracker').classList.add('on');
+        $('startBtn').style.display = 'none';
+        say('Câmera ativa', 'Mire no marcador HIRO impresso (ou exibido em outra tela).');
+      });
+      window.addEventListener('camera-error', e => {
+        log('camera-error ' + (e && e.detail && (e.detail.error && e.detail.error.name || e.detail)));
+        say('Não foi possível abrir a câmera', 'Toque no cadeado/ícone ao lado do endereço, permita a câmera para este site e recarregue.', true);
+        $('startBtn').style.display = '';
+        $('startBtn').textContent = 'Tentar de novo';
+      });
+    }
+
+    // ------- Início (precisa de gesto do usuário, principalmente no iPhone) -------
+    let started = false;
+    async function start(){
+      if (started) { location.reload(); return; }
+      if (!window.isSecureContext){
+        say('Precisa de HTTPS', 'A câmera só funciona em endereço https:// (ou localhost). Publique a pasta no Netlify/GitHub Pages e abra por lá.', true);
+        return;
+      }
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+        say('Navegador sem suporte', 'Abra no Chrome (Android) ou Safari (iPhone), fora de apps como Instagram/WhatsApp.', true);
+        return;
+      }
+      started = true;
+      $('startBtn').disabled = true;
+      say('Pedindo acesso à câmera…', 'Toque em “Permitir” quando o navegador perguntar.');
+      try {
+        // Pré-teste de permissão; fecha logo em seguida para o AR.js abrir a sua.
+        const st = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        st.getTracks().forEach(t => t.stop());
+        log('permissão da câmera ok');
+      } catch (err) {
+        started = false; $('startBtn').disabled = false;
+        log('getUserMedia: ' + err.name);
+        const msg = err.name === 'NotAllowedError' ? 'A permissão foi negada. Libere a câmera nas configurações do site e tente de novo.'
+                  : err.name === 'NotFoundError'   ? 'Nenhuma câmera encontrada neste aparelho.'
+                  : err.name === 'NotReadableError'? 'A câmera está em uso por outro app. Feche-o e tente de novo.'
+                  : 'Erro: ' + err.name;
+        say('Câmera indisponível', msg, true);
+        return;
+      }
+      say('Carregando motor de AR…', 'Isso precisa de internet na primeira vez.');
+      try {
+        await loadScript([
+          'https://aframe.io/releases/1.3.0/aframe.min.js',
+          'https://cdn.jsdelivr.net/gh/aframevr/aframe@1.3.0/dist/aframe.min.js'
+        ]);
+        await loadScript([
+          'https://raw.githack.com/AR-js-org/AR.js/3.4.5/aframe/build/aframe-ar.js',
+          'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js'
+        ]);
+      } catch (e) {
+        started = false; $('startBtn').disabled = false;
+        say('Falha ao carregar o AR', 'Sem acesso aos servidores de bibliotecas. Verifique a internet/bloqueadores e tente de novo.', true);
+        return;
+      }
+      say('Iniciando câmera…', 'Aguarde alguns segundos.');
+      buildScene();
+      // Se em 12 s a câmera não iniciar, avisa.
+      setTimeout(() => {
+        if (!document.body.classList.contains('live')){
+          say('Câmera demorando…', 'Se continuar assim, recarregue a página e confira a permissão da câmera. Abra com ?debug na URL para ver o log.', true);
+          $('startBtn').disabled = false; $('startBtn').style.display=''; $('startBtn').textContent='Recarregar';
+        }
+      }, 12000);
+    }
+    $('startBtn').addEventListener('click', start);
+    if (qs.has('auto')) start();
+  })();
+  </script>
+</body>
+</html>

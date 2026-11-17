@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#18211d">
+  <meta name="description" content="Protótipo demonstrativo de cardápio com visualização 3D e realidade aumentada.">
+  <title>IceBode · Menu AR (protótipo)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+  <style>
+    :root {
+      --ink: #1c241f;
+      --muted: #798078;
+      --paper: #f5f4ee;
+      --surface: #fffefa;
+      --line: #e7e6de;
+      --green: #c9f36b;
+      --green-dark: #273b2d;
+      --green-deep: #18211d;
+      --orange: #f08b45;
+      --shadow: 0 22px 60px rgba(23, 31, 25, .12);
+      --radius: 24px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; }
+    button, input { font: inherit; }
+    button { cursor: pointer; }
+    .topbar { background: var(--green-deep); color: white; padding: 15px 20px; position: sticky; top: 0; z-index: 10; box-shadow: 0 5px 20px rgba(0,0,0,.08); }
+    .topbar-inner { max-width: 1120px; margin: auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+    .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+    .brand-mark { width: 39px; height: 39px; flex: 0 0 auto; border-radius: 13px; display: grid; place-items: center; background: var(--green); color: var(--green-deep); font: 800 15px Manrope, sans-serif; letter-spacing: -1px; }
+    .brand-name { font: 800 14px Manrope, sans-serif; letter-spacing: .09em; line-height: 1.1; }
+    .brand-sub { color: #aab5ac; font-size: 10px; letter-spacing: .13em; margin-top: 4px; }
+    .demo-pill { border: 1px solid rgba(255,255,255,.18); color: #d5ded6; border-radius: 99px; padding: 8px 11px; font-size: 10px; font-weight: 700; letter-spacing: .08em; white-space: nowrap; }
+    .page { max-width: 1120px; margin: 0 auto; padding: 22px 20px 96px; }
+    .notice { display: flex; gap: 9px; align-items: flex-start; color: #6c6f63; font-size: 11px; line-height: 1.45; margin: 0 0 17px; }
+    .notice-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--orange); margin-top: 4px; flex: 0 0 auto; }
+    .hero { background: var(--green-deep); border-radius: 28px; overflow: hidden; color: white; min-height: 285px; position: relative; display: grid; grid-template-columns: 1fr .9fr; isolation: isolate; }
+    .hero-copy { padding: 32px 34px; position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
+    .eyebrow { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--green); font-weight: 800; }
+    h1 { font: 800 clamp(29px, 4vw, 48px)/1.05 Manrope, sans-serif; letter-spacing: -.055em; max-width: 520px; margin: 13px 0 13px; }
+    .hero p { color: #c1cbc2; font-size: 13px; line-height: 1.55; max-width: 365px; margin: 0; }
+    .hero-action { display: inline-flex; align-items: center; gap: 9px; border: 0; border-radius: 99px; background: var(--green); padding: 12px 16px; color: var(--green-deep); font-size: 12px; font-weight: 800; margin-top: 23px; box-shadow: 0 8px 22px rgba(201,243,107,.14); }
+    .hero-art { min-height: 285px; position: relative; overflow: hidden; }
+    .hero-art:before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, var(--green-deep), rgba(24,33,29,.05) 55%), linear-gradient(0deg, rgba(24,33,29,.38), transparent 55%); z-index: 1; }
+    .hero-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 54% 50%; opacity: .88; }
+    .hero-stamp { position: absolute; z-index: 2; right: 22px; bottom: 20px; border: 1px solid rgba(255,255,255,.45); background: rgba(16,25,20,.42); backdrop-filter: blur(12px); padding: 10px 13px; border-radius: 13px; font-size: 10px; line-height: 1.4; color: white; }
+    .hero-stamp strong { display: block; font: 800 16px Manrope,sans-serif; color: var(--green); }
+    .section-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; margin: 34px 0 16px; }
+    .section-kicker { color: #899086; font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h2 { margin: 5px 0 0; font: 800 24px Manrope,sans-serif; letter-spacing: -.045em; }
+    .search { width: min(250px, 45%); position: relative; }
+    .search input { width: 100%; border: 1px solid var(--line); background: rgba(255,255,255,.7); padding: 12px 14px 12px 38px; border-radius: 99px; outline: none; color: var(--ink); font-size: 12px; }
+    .search input:focus { border-color: #9bbd64; box-shadow: 0 0 0 3px rgba(166,205,93,.16); }
+    .search svg { position: absolute; left: 13px; top: 11px; color: #8b9288; }
+    .categories { display: flex; gap: 8px; overflow-x: auto; padding: 0 0 7px; scrollbar-width: none; }
+    .categories::-webkit-scrollbar { display: none; }
+    .category { border: 1px solid #e3e4da; padding: 10px 15px; border-radius: 99px; color: #60695f; background: #fffefa; font-size: 11px; font-weight: 700; white-space: nowrap; transition: .2s; }
+    .category.active { color: var(--green-deep); border-color: var(--green); background: var(--green); }
+    .featured { margin-top: 18px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; display: grid; grid-template-columns: 1fr 1.05fr; min-height: 225px; box-shadow: 0 8px 28px rgba(24,33,29,.035); }
+    .featured-image { position: relative; min-height: 225px; overflow: hidden; background: #d7c9ad; }
+    .featured-image img { width: 100%; height: 100%; position: absolute; inset: 0; object-fit: cover; }
+    .featured-tag { position: absolute; top: 14px; left: 14px; background: var(--green); color: var(--green-deep); border-radius: 99px; padding: 7px 10px; font-size: 9px; font-weight: 800; letter-spacing: .08em; }
+    .featured-copy { padding: 25px 26px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; }
+    .tiny-label { color: #8a9386; font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .featured-copy h3 { font: 800 25px Manrope,sans-serif; letter-spacing: -.045em; margin: 7px 0; }
+    .featured-copy p { color: var(--muted); font-size: 12px; line-height: 1.55; max-width: 390px; margin: 0; }
+    .featured-bottom { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 17px; }
+    .price { font: 800 20px Manrope,sans-serif; letter-spacing: -.04em; }
+    .price small { display: block; color: #9aa096; font: 500 9px 'DM Sans',sans-serif; letter-spacing: 0; margin-top: 2px; }
+    .dark-btn { border: 0; background: var(--green-deep); color: white; padding: 12px 15px; border-radius: 99px; font-size: 11px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; }
+    .dark-btn:hover { background: #2e4735; }
+    .grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; margin-top: 17px; }
+    .product-card { background: var(--surface); border: 1px solid var(--line); border-radius: 19px; overflow: hidden; transition: transform .2s, box-shadow .2s; cursor: pointer; min-width: 0; }
+    .product-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(24,33,29,.08); }
+    .product-photo { height: 142px; position: relative; overflow: hidden; background: #ded4c0; }
+    .product-photo img { width: 100%; height: 100%; object-fit: cover; transition: transform .35s; }
+    .product-card:hover .product-photo img { transform: scale(1.04); }
+    .product-mini-tag { position: absolute; top: 10px; left: 10px; border-radius: 99px; background: rgba(255,254,250,.93); padding: 6px 8px; font-size: 8px; letter-spacing: .07em; font-weight: 800; color: #59624f; }
+    .product-info { padding: 13px 13px 14px; }
+    .product-info h3 { margin: 0; font: 800 14px Manrope,sans-serif; letter-spacing: -.025em; }
+    .product-info p { font-size: 10px; line-height: 1.45; color: #858c82; margin: 6px 0 12px; min-height: 29px; }
+    .product-bottom { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .product-price { font-weight: 800; font-size: 14px; }
+    .plus { border: 0; width: 31px; height: 31px; border-radius: 50%; background: var(--green); color: var(--green-deep); font-size: 21px; line-height: 1; font-weight: 500; }
+    .empty { display:none; color: #8b9288; text-align: center; border: 1px dashed #d9ddd1; border-radius: 18px; padding: 28px 12px; font-size: 12px; margin-top: 18px; }
+    .trust-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-top: 32px; }
+    .trust { border: 1px solid var(--line); border-radius: 15px; padding: 14px; background: rgba(255,254,250,.62); display:flex; align-items:center; gap:10px; }
+    .trust-icon { width: 32px; height: 32px; display:grid; place-items:center; border-radius: 10px; background:#e9f4d6; color:#38532d; flex:0 0 auto; }
+    .trust strong { font-size: 10px; display:block; }
+    .trust span { font-size: 9px; color:#8a9288; display:block; margin-top:3px; }
+    .footer { text-align:center; color:#969c91; font-size:10px; padding:28px 0 0; line-height:1.6; }
+    .floating-cart { position: fixed; z-index: 12; bottom: max(18px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); background: var(--green-deep); color: white; border: 0; border-radius: 99px; display: flex; align-items:center; gap: 12px; padding: 12px 17px; box-shadow: 0 12px 35px rgba(19,30,23,.28); font-size: 12px; font-weight: 800; min-width: 185px; justify-content:space-between; }
+    .cart-count { background: var(--green); color: var(--green-deep); min-width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font-size:10px; }
+    .overlay { position: fixed; inset: 0; z-index: 30; background: rgba(13,20,16,.62); backdrop-filter: blur(6px); display:none; align-items:flex-end; justify-content:center; padding: 16px; }
+    .overlay.open { display:flex; }
+    .sheet { width:min(680px,100%); max-height:min(92dvh,900px); overflow:auto; background:var(--surface); border-radius:28px; box-shadow:var(--shadow); position:relative; animation: rise .22s ease-out; }
+    @keyframes rise { from { transform:translateY(24px); opacity:0 } to { transform:translateY(0); opacity:1 } }
+    .sheet-close { position:absolute; z-index:5; top:13px; right:13px; width:36px; height:36px; border:0; border-radius:50%; background:rgba(255,255,255,.92); color:#27332a; font-size:21px; box-shadow:0 3px 14px rgba(0,0,0,.12); }
+    .viewer-wrap { height:285px; position:relative; background:radial-gradient(circle at 50% 48%,#f2ebd7,#e1ddca 72%,#d4d5c5); overflow:hidden; }
+    model-viewer { width:100%; height:100%; background:transparent; --poster-color: transparent; }
+    .viewer-caption { position:absolute; left:15px; top:14px; z-index:2; pointer-events:none; background:rgba(255,254,250,.82); backdrop-filter:blur(9px); border:1px solid rgba(255,255,255,.7); border-radius:99px; color:#51614b; font-size:9px; font-weight:800; letter-spacing:.08em; padding:8px 11px; }
+    .viewer-note { position:absolute; left:13px; bottom:12px; z-index:2; background:rgba(24,33,29,.78); color:white; padding:7px 10px; border-radius:99px; font-size:9px; pointer-events:none; }
+    .ar-launch { position:absolute; right:13px; bottom:10px; z-index:3; border:0; border-radius:99px; padding:10px 13px; background:var(--green); color:var(--green-deep); font-size:10px; font-weight:800; box-shadow:0 6px 18px rgba(0,0,0,.16); }
+    .ar-launch:active { transform:scale(.97); }
+    .sheet-body { padding:22px 24px 24px; }
+    .sheet-title-row { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; }
+    .sheet-title-row h2 { font-size:24px; margin:4px 0 7px; }
+    .sheet-desc { color:#7c857a; font-size:12px; line-height:1.55; margin:0; }
+    .sheet-price { white-space:nowrap; font:800 21px Manrope,sans-serif; }
+    .ingredients { display:flex; flex-wrap:wrap; gap:7px; margin:16px 0 14px; }
+    .ingredient { padding:7px 10px; border:1px solid #e6e8df; border-radius:99px; color:#687365; font-size:10px; background:#fbfcf7; }
+    .dimension-row { display:flex; gap:10px; align-items:center; border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:13px 0; margin:14px 0; }
+    .dimension-icon { width:34px; height:34px; display:grid; place-items:center; border-radius:11px; background:#edf5df; color:#455f35; }
+    .dimension-text strong { font-size:11px; display:block; }
+    .dimension-text span { font-size:10px; color:#899186; display:block; margin-top:3px; }
+    .ar-help { color:#858d82; background:#f3f4ee; border-radius:12px; padding:11px 12px; font-size:10px; line-height:1.5; margin:14px 0 15px; }
+    .sheet-actions { display:flex; gap:10px; }
+    .sheet-actions .dark-btn { flex:1; justify-content:center; padding:14px; }
+    .outline-btn { border:1px solid #dfe3d8; background:white; color:#3e4a3f; border-radius:99px; padding:12px 15px; font-size:11px; font-weight:800; }
+    .cart-sheet { padding:23px 22px 24px; }
+    .cart-sheet h2 { margin:0 0 5px; }
+    .cart-sub { font-size:11px; color:#8b9388; margin-bottom:18px; }
+    .cart-line { display:flex; align-items:center; justify-content:space-between; gap:12px; border-bottom:1px solid var(--line); padding:12px 0; font-size:12px; }
+    .cart-line small { display:block; color:#8b9388; margin-top:3px; }
+    .cart-total { display:flex; justify-content:space-between; padding:18px 0; font:800 18px Manrope,sans-serif; }
+    .toast { position:fixed; z-index:50; left:50%; bottom:90px; transform:translate(-50%,12px); background:#18211d; color:white; padding:12px 16px; border-radius:99px; font-size:11px; opacity:0; pointer-events:none; transition:.22s; box-shadow:0 8px 25px rgba(0,0,0,.2); width:max-content; max-width:calc(100% - 30px); text-align:center; }
+    .toast.show { opacity:1; transform:translate(-50%,0); }
+    @media (max-width: 760px) {
+      .topbar { padding:12px 16px; }
+      .page { padding:15px 14px 100px; }
+      .hero { grid-template-columns:1fr; min-height:unset; }
+      .hero-copy { padding:26px 23px 23px; }
+      h1 { max-width:370px; font-size:34px; }
+      .hero-art { min-height:170px; }
+      .hero-art:before { background:linear-gradient(0deg,rgba(24,33,29,.22),transparent 70%); }
+      .hero-art img { object-position:center 48%; }
+      .hero-stamp { bottom:12px; right:12px; }
+      .section-head { margin-top:28px; align-items:center; }
+      h2 { font-size:21px; }
+      .search { width:42%; }
+      .search input { padding:10px 10px 10px 32px; font-size:10px; }
+      .search svg { left:11px; top:9px; }
+      .featured { grid-template-columns:1fr; }
+      .featured-image { min-height:190px; }
+      .featured-copy { padding:19px 20px 20px; }
+      .featured-copy h3 { font-size:22px; }
+      .grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+      .product-photo { height:130px; }
+      .product-info { padding:12px; }
+      .product-info h3 { font-size:13px; }
+      .trust-row { grid-template-columns:1fr; gap:8px; margin-top:25px; }
+      .trust { padding:10px 12px; }
+      .overlay { padding:0; align-items:flex-end; }
+      .sheet { border-radius:26px 26px 0 0; max-height:94dvh; }
+      .viewer-wrap { height:260px; }
+      .sheet-body { padding:19px 18px max(22px,env(safe-area-inset-bottom)); }
+      .sheet-title-row h2 { font-size:21px; }
+    }
+    @media (max-width: 360px) {
+      .demo-pill { font-size:8px; padding:7px 8px; }
+      .brand-name { font-size:12px; }
+      .product-photo { height:112px; }
+      .product-info p { min-height:40px; }
+      .featured-bottom { align-items:flex-end; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="brand-mark">IB</div>
+        <div><div class="brand-name">ICEBODE <span style="color:var(--green)">·</span> MENU AR</div><div class="brand-sub">UMA NOVA FORMA DE ESCOLHER</div></div>
+      </div>
+      <div class="demo-pill">PROTÓTIPO NÃO OFICIAL</div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="notice"><span class="notice-dot"></span><span>Projeto conceitual para demonstração. Não é um canal oficial do estabelecimento; produtos, descrições e valores devem ser confirmados antes de qualquer publicação comercial.</span></div>
+
+    <section class="hero">
+      <div class="hero-copy">
+        <div class="eyebrow">O cardápio ganhou outra dimensão</div>
+        <h1>Escolha com os olhos. Peça com confiança.</h1>
+        <p>Explore os detalhes, gire o produto em 3D e veja como ele ficaria na sua mesa usando a câmera do celular.</p>
+        <button class="hero-action" onclick="document.getElementById('menu').scrollIntoView({behavior:'smooth'})">Explorar cardápio <span aria-hidden="true">↘</span></button>
+      </div>
+      <div class="hero-art">
+        <img src="https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=1200&q=88" alt="Hambúrguer artesanal" onerror="this.style.display='none'">
+        <div class="hero-stamp"><strong>360°</strong>Veja além da foto</div>
+      </div>
+    </section>
+
+    <section id="menu">
+      <div class="section-head">
+        <div><div class="section-kicker">Feito para abrir o apetite</div><h2>Nosso cardápio</h2></div>
+        <label class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input id="searchInput" type="search" placeholder="Buscar prato..." autocomplete="off"></label>
+      </div>
+      <div class="categories" id="categories">
+        <button class="category active" data-category="Todos">Todos</button>
+        <button class="category" data-category="Hambúrgueres">Hambúrgueres</button>
+        <button class="category" data-category="Combos">Combos</button>
+      </div>
+
+      <article class="featured" id="featuredProduct" onclick="openProduct('especial')">
+        <div class="featured-image">
+          <img src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1000&q=88" alt="Hambúrguer especial" onerror="this.style.display='none'">
+          <div class="featured-tag">EXPERIÊNCIA 3D + AR</div>
+        </div>
+        <div class="featured-copy">
+          <div class="tiny-label">Destaque da casa · experiência imersiva</div>
+          <h3>Especial da Casa</h3>
+          <p>Um clássico generoso para explorar por todos os ângulos. Toque para abrir o modelo 3D e experimentar a visualização em realidade aumentada.</p>
+          <div class="featured-bottom">
+            <div class="price">R$ 40,00<small>Valor de referência do cardápio consultado</small></div>
+            <button class="dark-btn" type="button" onclick="event.stopPropagation();openProduct('especial')">Ver em 3D <span>↗</span></button>
+          </div>
+        </div>
+      </article>
+
+      <div class="grid" id="productGrid" aria-live="polite"></div>
+      <div class="empty" id="emptyState">Não encontramos esse produto. Tente outro nome.</div>
+    </section>
+
+    <section class="trust-row" aria-label="Recursos do cardápio">
+      <div class="trust"><div class="trust-icon">◉</div><div><strong>Visualização 3D</strong><span>Gire e observe os detalhes</span></div></div>
+      <div class="trust"><div class="trust-icon">⌖</div><div><strong>Realidade aumentada</strong><span>Experimente na sua mesa</span></div></div>
+      <div class="trust"><div class="trust-icon">↯</div><div><strong>Sem instalar aplicativo</strong><span>Abre direto pelo navegador</span></div></div>
+    </section>
+    <footer class="footer">PROTÓTIPO MENU AR · PARÁ<br>Experiência demonstrativa, sem pedidos reais ou integração com o restaurante.</footer>
+  </main>
+
+  <button class="floating-cart" onclick="openCart()"><span>Ver meu pedido</span><span class="cart-count" id="cartCount">0</span></button>
+
+  <div class="overlay" id="productOverlay" onclick="overlayClose(event,'productOverlay')">
+    <section class="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+      <button class="sheet-close" onclick="closeOverlay('productOverlay')" aria-label="Fechar">×</button>
+      <div class="viewer-wrap" id="viewerWrap">
+        <div class="viewer-caption">MODELO 3D · ESCALA APROXIMADA</div>
+        <model-viewer id="burgerViewer" src="assets/house-burger.glb" ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" ar-placement="floor" alt="Modelo 3D ilustrativo de hambúrguer artesanal" camera-controls auto-rotate rotation-per-second="18deg" shadow-intensity="1" exposure="1.05" environment-image="neutral" camera-orbit="25deg 72deg 0.24m" min-camera-orbit="auto auto 0.16m" max-camera-orbit="auto auto 0.55m" interaction-prompt="auto" loading="eager">
+        </model-viewer>
+        <div class="viewer-note">Arraste para girar · pinça para ampliar</div>
+        <button class="ar-launch" id="arLaunchButton" onclick="launchAR()">⌖ Ver na minha mesa</button>
+      </div>
+      <div class="sheet-body">
+        <div class="sheet-title-row"><div><div class="tiny-label">DESTAQUE · MODELO DEMONSTRATIVO</div><h2 id="sheetTitle">Especial da Casa</h2></div><div class="sheet-price" id="sheetPrice">R$ 40,00</div></div>
+        <p class="sheet-desc" id="sheetDescription">Um hambúrguer ilustrativo em 3D para demonstrar como o cliente pode explorar o produto antes de pedir.</p>
+        <div class="ingredients" id="sheetIngredients"><span class="ingredient">Pão artesanal</span><span class="ingredient">Carne</span><span class="ingredient">Queijo</span><span class="ingredient">Salada</span></div>
+        <div class="dimension-row"><div class="dimension-icon">↔</div><div class="dimension-text"><strong>Dimensões ilustrativas</strong><span>aprox. 12 cm de largura × 10 cm de altura · escala do modelo 3D</span></div></div>
+        <div class="ar-help" id="arHelp">A experiência tenta primeiro a AR nativa. Se o celular não for compatível, abre uma alternativa por câmera com AR.js. Essa alternativa precisa do marcador HIRO impresso na mesa.</div>
+        <div class="sheet-actions"><button class="outline-btn" onclick="closeOverlay('productOverlay')">Continuar explorando</button><button class="dark-btn" onclick="addCurrentToCart()">Adicionar ao pedido <span>＋</span></button></div>
+      </div>
+    </section>
+  </div>
+
+  <div class="overlay" id="cartOverlay" onclick="overlayClose(event,'cartOverlay')">
+    <section class="sheet cart-sheet" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
+      <button class="sheet-close" onclick="closeOverlay('cartOverlay')" aria-label="Fechar">×</button>
+      <div class="tiny-label">SUA SELEÇÃO</div><h2 id="cartTitle">Seu pedido</h2><div class="cart-sub">Carrinho demonstrativo — nenhum pedido será enviado.</div>
+      <div id="cartLines"></div>
+      <div class="cart-total"><span>Total estimado</span><span id="cartTotal">R$ 0,00</span></div>
+      <button class="dark-btn" style="width:100%;justify-content:center;padding:14px" onclick="closeOverlay('cartOverlay');toast('Demonstração concluída — pedidos reais ainda não estão habilitados.')">Finalizar demonstração <span>↗</span></button>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const products = [
+      {id:'eggs', name:'Eggs Burger', category:'Hambúrgueres', price:30, desc:'Uma opção clássica para matar a fome.', img:'https://images.unsplash.com/photo-1586190848861-99aa4a171e90?auto=format&fit=crop&w=800&q=85', tag:'CLÁSSICO'},
+      {id:'especial', name:'Especial da Casa', category:'Hambúrgueres', price:40, desc:'O destaque da demonstração: explore o modelo em 3D e veja em escala aproximada.', img:'https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=800&q=85', tag:'3D + AR'},
+      {id:'xbodao', name:'X-Bodão', category:'Hambúrgueres', price:37, desc:'Uma opção generosa para quem chega com bastante fome.', img:'https://images.unsplash.com/photo-1553979459-d2229ba7433a?auto=format&fit=crop&w=800&q=85', tag:'BEM SERVIDO'},
+      {id:'xbacon', name:'X-Bacon', category:'Hambúrgueres', price:35, desc:'Uma combinação clássica para os fãs de bacon.', img:'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&w=800&q=85', tag:'FAVORITO'},
+      {id:'combo01', name:'Super Combo 01', category:'Combos', price:33, desc:'Uma opção para transformar o lanche em uma refeição completa.', img:'https://images.unsplash.com/photo-1571091718767-18b5b1457add?auto=format&fit=crop&w=800&q=85', tag:'COMBO'}
+    ];
+    let selectedCategory = 'Todos';
+    let currentProduct = products.find(p => p.id === 'especial');
+    const cart = new Map();
+    const money = n => n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
+
+    function productCard(p) {
+      return `<article class="product-card" onclick="openProduct('${p.id}')" tabindex="0" role="button" aria-label="Ver ${p.name}">
+        <div class="product-photo"><img src="${p.img}" alt="${p.name}" loading="lazy" onerror="this.style.display='none'"><span class="product-mini-tag">${p.tag}</span></div>
+        <div class="product-info"><h3>${p.name}</h3><p>${p.desc}</p><div class="product-bottom"><span class="product-price">${money(p.price)}</span><button class="plus" aria-label="Adicionar ${p.name}" onclick="event.stopPropagation();quickAdd('${p.id}')">+</button></div></div>
+      </article>`;
+    }
+    function renderProducts() {
+      const query = document.getElementById('searchInput').value.trim().toLocaleLowerCase('pt-BR');
+      const filtered = products.filter(p => (selectedCategory === 'Todos' || p.category === selectedCategory) && (p.name.toLocaleLowerCase('pt-BR').includes(query) || p.desc.toLocaleLowerCase('pt-BR').includes(query)));
+      document.getElementById('productGrid').innerHTML = filtered.filter(p => p.id !== 'especial').map(productCard).join('');
+      document.getElementById('emptyState').style.display = filtered.length ? 'none' : 'block';
+      document.getElementById('featuredProduct').style.display = (selectedCategory === 'Todos' || selectedCategory === 'Hambúrgueres') && (!query || 'especial da casa'.includes(query) || 'destaque da casa'.includes(query)) ? 'grid' : 'none';
+    }
+    document.querySelectorAll('.category').forEach(btn => btn.addEventListener('click', () => {
+      selectedCategory = btn.dataset.category;
+      document.querySelectorAll('.category').forEach(x => x.classList.toggle('active',x === btn));
+      renderProducts();
+    }));
+    document.getElementById('searchInput').addEventListener('input',renderProducts);
+
+    function openProduct(id) {
+      currentProduct = products.find(p => p.id === id) || products[0];
+      const is3D = currentProduct.id === 'especial';
+      document.getElementById('sheetTitle').textContent = currentProduct.name;
+      document.getElementById('sheetPrice').textContent = money(currentProduct.price);
+      document.getElementById('sheetDescription').textContent = is3D ? 'Modelo 3D ilustrativo criado para demonstrar a experiência. Gire, aproxime e visualize o lanche antes de pedir.' : currentProduct.desc + ' A visualização 3D deste item ainda não foi produzida.';
+      document.getElementById('sheetIngredients').innerHTML = (is3D ? ['Pão artesanal','Carne','Queijo','Alface','Tomate','Cebola'] : ['Produto demonstrativo','Descrição a confirmar']).map(x=>`<span class="ingredient">${x}</span>`).join('');
+      const viewer = document.getElementById('burgerViewer');
+      const vw = document.getElementById('viewerWrap');
+      if (is3D) {
+        vw.style.display = 'block';
+        vw.style.background = 'radial-gradient(circle at 50% 48%,#f2ebd7,#e1ddca 72%,#d4d5c5)';
+        viewer.style.display = 'block';
+        document.getElementById('arLaunchButton').style.display = 'block';
+        document.querySelector('.viewer-caption').textContent = 'MODELO 3D · ESCALA APROXIMADA';
+        document.querySelector('.viewer-note').textContent = 'Arraste para girar · pinça para ampliar';
+      } else {
+        vw.style.display = 'block';
+        document.getElementById('arLaunchButton').style.display = 'none';
+        viewer.style.display = 'none';
+        vw.style.background = `linear-gradient(0deg,rgba(24,33,29,.10),rgba(24,33,29,.10)), url('${currentProduct.img}') center/cover`;
+        document.querySelector('.viewer-caption').textContent = 'FOTO ILUSTRATIVA';
+        document.querySelector('.viewer-note').textContent = 'Modelo 3D deste produto ainda não disponível';
+      }
+      updateARHelp();
+      document.getElementById('productOverlay').classList.add('open');
+      document.body.style.overflow='hidden';
+    }
+    function updateARHelp() {
+      const help = document.getElementById('arHelp');
+      if (location.protocol === 'file:') {
+        help.textContent = 'Para testar o 3D, rode um servidor local. Para usar a câmera, publique a pasta em HTTPS. A alternativa AR.js usa um marcador visual impresso e não depende do ARCore.';
+      } else if (!window.isSecureContext) {
+        help.textContent = 'A câmera só pode ser acessada em uma conexão segura. Publique esta pasta em HTTPS para testar a AR no celular.';
+      } else {
+        help.textContent = 'Aponte a câmera para o marcador HIRO impresso ou exibido em outra tela. O hambúrguer ficará ancorado ao marcador. Se o seu aparelho tiver ARCore, o prato aparece direto na mesa; senão, usamos o marcador (AR.js).';
+      }
+    }
+    function launchAR() {
+      if (location.protocol === 'file:' || !window.isSecureContext) {
+        toast('A câmera exige HTTPS. Publique a pasta em uma hospedagem HTTPS para testar a AR no celular.');
+        return;
+      }
+      // 1) AR nativo (ARCore no Android / Quick Look no iPhone), sem marcador.
+      const mv = document.getElementById('burgerViewer');
+      if (mv && mv.canActivateAR) { mv.activateAR(); return; }
+      // 2) Plano B: AR com marcador HIRO (AR.js).
+      toast('AR nativo indisponível neste aparelho. Abrindo AR com marcador…');
+      setTimeout(() => { window.location.href = 'ar-marker.html'; }, 1600);
+    }
+    function closeOverlay(id) { document.getElementById(id).classList.remove('open'); document.body.style.overflow=''; }
+    function overlayClose(event,id) { if (event.target.id === id) closeOverlay(id); }
+    function addToCart(id) {
+      const p = products.find(x=>x.id===id); if (!p) return;
+      cart.set(id,(cart.get(id)||0)+1); updateCart(); toast(`${p.name} adicionado ao pedido.`);
+    }
+    function quickAdd(id) { addToCart(id); }
+    function addCurrentToCart() { addToCart(currentProduct.id); closeOverlay('productOverlay'); }
+    function updateCart() {
+      let count=0; for (const q of cart.values()) count+=q;
+      document.getElementById('cartCount').textContent=count;
+    }
+    function openCart() {
+      const lines=document.getElementById('cartLines'); let total=0;
+      if (!cart.size) lines.innerHTML='<div style="padding:24px 0;text-align:center;color:#8c9489;font-size:12px">Seu pedido ainda está vazio.<br>Explore o cardápio e adicione um prato.</div>';
+      else lines.innerHTML=[...cart.entries()].map(([id,qty])=>{const p=products.find(x=>x.id===id);total+=p.price*qty;return `<div class="cart-line"><div><strong>${p.name}</strong><small>Quantidade: ${qty}</small></div><strong>${money(p.price*qty)}</strong></div>`}).join('');
+      document.getElementById('cartTotal').textContent=money(total);
+      document.getElementById('cartOverlay').classList.add('open'); document.body.style.overflow='hidden';
+    }
+    let toastTimer;
+    function toast(message) { const el=document.getElementById('toast'); el.textContent=message; el.classList.add('show'); clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove('show'),2600); }
+    renderProducts();
+
+    // Graceful fallback if the model-viewer CDN fails to load.
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        if (!customElements.get('model-viewer')) {
+          document.getElementById('viewerWrap').style.background = "#e1ddca url('https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&w=1000&q=88') center/cover";
+          document.getElementById('viewerNoteFallback');
+          toast('Não foi possível carregar o visualizador 3D. Confira sua conexão.');
+        }
+      }, 1800);
+    });
+  </script>
+</body>
+</html>
